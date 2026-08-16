@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "files": {
+    "__init__.py": "e0e0a7aff0fd0bcc7dfb6afda4324542ab776719e18c24e042194cfb21b73992",
+    "app.py": "f4c7ba54fa9380b6aca7d03a5aada2ba0a40261497d313590d015046c202bf65",
+    "config.py": "4c4d6241778a331d379dc59094d83c9e8b7a8fa97c4f4eda2f42ff665e86d77c",
+    "server.py": "6e33a37b57feccf129b75f3192cab5ac48d1422dd63e1438be57032a2839ec0a",
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/conftest.py": "59d4072f604019865e4509956a37aac77b5619db88ff9ad881bf59eaf9fa6305",
+    "tests/test_app.py": "f3bc39f67592361aca82e40de8c63918b14f06075558ed6810de56fcce35d49d",
+    "tests/test_bootstrap.py": "b134320104267bf8c2cf2ba7107268ffe54095d2fcfc1112bec748a1c52673e3"
+  },
+  "manifest_hash": "7e87d90cac285c5d98c6b518121656dca6264255fa1950a214cbdd850549119b"
+}
