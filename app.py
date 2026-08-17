@@ -125,9 +125,12 @@ def _register_dynamic_routes(app: Any, proxy_provider: Any) -> None:
     # GET /api/v1 — список всех модулей и методов
     @app.get("/api/v1")
     async def list_modules():
-        methods = proxy_provider.list_api()
+        result = proxy_provider.list_api()
+        # list_api() decorated with @task returns TaskFuture
+        if hasattr(result, "result"):
+            result = result.result()
         modules = {}
-        for m in methods:
+        for m in result:
             mod = m["module"]
             if mod not in modules:
                 modules[mod] = []
