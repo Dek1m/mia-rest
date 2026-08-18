@@ -63,6 +63,13 @@ def __getattr__(name: str) -> Any:
             def version(self):
                 return MODULE_VERSION
 
+            @property
+            def meta(self):
+                from modules_system.module_base import ModuleMeta
+                return ModuleMeta(
+                    dependencies=["apiproxy"],
+                )
+
             def __init__(self, config=None):
                 self._config = config or config_mod.RestConfig.from_env()
                 self._app = None
