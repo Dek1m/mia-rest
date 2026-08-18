@@ -67,7 +67,7 @@ def __getattr__(name: str) -> Any:
             def meta(self):
                 from modules_system.module_base import ModuleMeta
                 return ModuleMeta(
-                    dependencies=["apiproxy"],
+                    dependencies=["log", "apiproxy"],
                 )
 
             def __init__(self, config=None):
