@@ -5,10 +5,6 @@ import asyncio
 import threading
 from typing import Any
 
-from argenta_logging import get_logger
-
-log = get_logger(__name__)
-
 __all__ = ["run_server", "start_server_background"]
 
 
@@ -28,6 +24,7 @@ def start_server_background(
     app: Any,
     host: str = "0.0.0.0",
     port: int = 8000,
+    log: Any | None = None,
 ) -> threading.Thread:
     """Запустить uvicorn в фоновом потоке.
 
@@ -40,5 +37,6 @@ def start_server_background(
 
     thread = threading.Thread(target=_run, daemon=True, name="mia-rest-server")
     thread.start()
-    log.info("rest_server_started", host=host, port=port)
+    if log is not None:
+        log.info("rest_server_started", host=host, port=port)
     return thread

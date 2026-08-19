@@ -55,6 +55,11 @@ def __getattr__(name: str) -> Any:
         app_mod = _lazy_import("app")
 
         class RestModule(ModuleBase):
+            def __init__(self, config=None):
+                self._config = config or config_mod.RestConfig.from_env()
+                self._app = None
+                self._log = None
+
             @property
             def name(self):
                 return "rest"
@@ -70,21 +75,21 @@ def __getattr__(name: str) -> Any:
                     dependencies=["log", "apiproxy"],
                 )
 
-            def __init__(self, config=None):
-                self._config = config or config_mod.RestConfig.from_env()
-                self._app = None
-
             def on_load(self, state):
+                self._log = state.log
                 proxy_provider = None
                 try:
                     from modules.apiproxy.provider import ApiProxyProvider
                     proxy_provider = state.services.resolve(ApiProxyProvider)
                 except Exception:
                     pass
-                self._app = app_mod.create_app(proxy_provider=proxy_provider)
+                self._app = app_mod.create_app(proxy_provider=proxy_provider, log=self._log)
+                self._log.info("rest_module_loaded", version=MODULE_VERSION)
 
             def on_unload(self):
                 self._app = None
+                self._log.info("rest_module_unloaded")
+                self._log = None
 
         return RestModule
     raise AttributeError(f"module 'rest' has no attribute {name}")

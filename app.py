@@ -7,14 +7,10 @@ from fastapi import Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.responses import Response
 
-from argenta_logging import get_logger
-
-log = get_logger(__name__)
-
 __all__ = ["create_app"]
 
 
-def create_app(proxy_provider: Any | None = None) -> Any:
+def create_app(proxy_provider: Any | None = None, log: Any | None = None) -> Any:
     """Создать FastAPI приложение с маршрутами из реестра.
 
     Args:
