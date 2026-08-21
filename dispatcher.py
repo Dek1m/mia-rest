@@ -26,6 +26,19 @@ _DEFAULT_SPA_ORIGINS = ("http://localhost:5173",)
 _CLEAR_ON_CODES = frozenset({"REUSE_DETECTED", "AUTH_ERROR"})
 
 
+def _sub_from_access(token: str | None) -> str | None:
+    """sub из JWT без проверки подписи — authorize уже отсеет битый токен."""
+    if not token:
+        return None
+    try:
+        import jwt
+        payload = jwt.decode(token, options={"verify_signature": False})
+    except Exception:
+        return None
+    sub = payload.get("sub")
+    return str(sub) if sub else None
+
+
 class RpcDispatcher:
     """Один маршрут. JSON-тело = kwargs. JWT не парсим."""
 
@@ -109,8 +122,16 @@ class RpcDispatcher:
             client = request.client
             if client is not None and client.host:
                 kwargs["ip"] = client.host
-            return access_cookie(request), kwargs
-        return self._bearer_token(request), kwargs
+            token = access_cookie(request)
+            session_id = _sub_from_access(token)
+            if session_id:
+                kwargs["_session_user_id"] = session_id
+            return token, kwargs
+        token = self._bearer_token(request)
+        session_id = _sub_from_access(token)
+        if session_id:
+            kwargs["_session_user_id"] = session_id
+        return token, kwargs
 
     def _bearer_token(self, request: Request) -> str | None:
         header = request.headers.get("authorization")
