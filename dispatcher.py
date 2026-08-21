@@ -26,6 +26,29 @@ _DEFAULT_SPA_ORIGINS = ("http://localhost:5173",)
 _CLEAR_ON_CODES = frozenset({"REUSE_DETECTED", "AUTH_ERROR"})
 
 
+_SESSION_METHODS = frozenset({
+    "get_me",
+    "update_me",
+    "change_username",
+    "set_avatar",
+    "clear_avatar",
+    "get_my_groups",
+    "list_groups",
+    "add_user_to_group",
+    "remove_user_from_group",
+})
+
+
+def _attach_session(
+    kwargs: dict[str, Any], module: str, function: str, token: str | None,
+) -> None:
+    if module != "auth" or function not in _SESSION_METHODS:
+        return
+    session_id = _sub_from_access(token)
+    if session_id:
+        kwargs["_session_user_id"] = session_id
+
+
 def _sub_from_access(token: str | None) -> str | None:
     """sub из JWT без проверки подписи — authorize уже отсеет битый токен."""
     if not token:
@@ -123,14 +146,10 @@ class RpcDispatcher:
             if client is not None and client.host:
                 kwargs["ip"] = client.host
             token = access_cookie(request)
-            session_id = _sub_from_access(token)
-            if session_id:
-                kwargs["_session_user_id"] = session_id
+            _attach_session(kwargs, module, function, token)
             return token, kwargs
         token = self._bearer_token(request)
-        session_id = _sub_from_access(token)
-        if session_id:
-            kwargs["_session_user_id"] = session_id
+        _attach_session(kwargs, module, function, token)
         return token, kwargs
 
     def _bearer_token(self, request: Request) -> str | None:
