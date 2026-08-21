@@ -124,9 +124,10 @@ async def _serve_avatar(
     if not token:
         return dispatcher.client_error(request, 401, "Authentication required")
     ctx = await auth.validate_token(token)
-    if ctx is None:
+    user_id = _ctx_user_id(ctx)
+    if not user_id:
         return dispatcher.client_error(request, 401, "Invalid or expired token")
-    payload = await auth.get_avatar_bytes(ctx.user_id)
+    payload = await auth.get_avatar_bytes(user_id)
     if payload is None:
         return dispatcher.client_error(request, 404, "Avatar not found")
     raw, content_type = payload
@@ -138,6 +139,19 @@ async def _serve_avatar(
             "X-Content-Type-Options": "nosniff",
         },
     )
+
+
+def _ctx_user_id(ctx: Any) -> str | None:
+    """validate_token через воркер приходит dict/str, не UserContext."""
+    if ctx is None:
+        return None
+    if isinstance(ctx, dict):
+        value = ctx.get("user_id")
+        return str(value) if value else None
+    value = getattr(ctx, "user_id", None)
+    if value:
+        return str(value)
+    return None
 
 
 def build_openapi(methods: list[dict[str, Any]]) -> dict[str, Any]:

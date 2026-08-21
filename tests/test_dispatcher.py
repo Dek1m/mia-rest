@@ -402,6 +402,34 @@ class TestAvatarGet:
         response = client.get("/api/v1/auth/avatar")
         assert response.status_code == 401
 
+    def test_avatar_bytes_from_dict_ctx(self, rest_config, fake_log) -> None:
+        class _Auth:
+            async def validate_token(self, token: str):
+                assert token == "tok"
+                return {"user_id": "u1", "username": "ada"}
+
+            async def get_avatar_bytes(self, user_id: str):
+                assert user_id == "u1"
+                return b"\x89PNG", "image/png"
+
+        class _Proxy:
+            auth_provider = _Auth()
+
+            async def call(self, *args, **kwargs):
+                return {"data": None, "error": {"code": "ERROR_404", "message": "x", "status_code": 404}}
+
+            def list_api(self, module_name=None):
+                return []
+
+        app = create_app(rest_config, _Proxy(), fake_log)
+        with TestClient(app) as client:
+            response = client.get(
+                "/api/v1/auth/avatar",
+                headers={"Cookie": "albedo_at=tok"},
+            )
+        assert response.status_code == 200
+        assert response.content == b"\x89PNG"
+
     def test_avatar_bytes_nosniff_nostore(self, rest_config, fake_log) -> None:
         class _Auth:
             async def validate_token(self, token: str):
