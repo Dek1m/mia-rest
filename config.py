@@ -36,6 +36,7 @@ class RestConfig:
     port: int = 8080
     bind: bool = True
     cors_origins: list[str] = field(default_factory=list)
+    spa_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173"])
     max_body_bytes: int = 1_048_576
     docs: bool = False
 
@@ -47,6 +48,7 @@ class RestConfig:
             port=_env_int("MIA_REST_PORT", 8080),
             bind=_env_bool("MIA_REST_BIND", True),
             cors_origins=_env_list("MIA_REST_CORS_ORIGINS"),
+            spa_origins=_env_list("MIA_REST_SPA_ORIGINS") or ["http://localhost:5173"],
             max_body_bytes=_env_int("MIA_REST_MAX_BODY_BYTES", 1_048_576),
             docs=_env_bool("MIA_REST_DOCS", False),
         )

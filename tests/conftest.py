@@ -38,6 +38,7 @@ def _load_submodule(name: str) -> types.ModuleType:
 _load_submodule("config")
 _load_submodule("envelope")
 _load_submodule("metrics")
+_load_submodule("cookie_auth")
 _load_submodule("middleware")
 _load_submodule("dispatcher")
 _load_submodule("factory")
@@ -89,7 +90,32 @@ class FakeApiProxyProvider:
     ) -> dict[str, Any]:
         self.calls.append((module, method, kwargs, token))
         if module == "auth" and method == "login":
-            return _ok({"access_token": "fake-token", "user_id": "user-1"})
+            return _ok({
+                "access_token": "fake-token",
+                "refresh_token": "fake-refresh",
+                "user_id": "user-1",
+                "username": "admin",
+            })
+        if module == "auth" and method == "refresh_token":
+            if kwargs.get("refresh_token") == "reuse":
+                return {
+                    "data": None,
+                    "error": {
+                        "code": "REUSE_DETECTED",
+                        "message": "Refresh token reuse detected",
+                        "status_code": 401,
+                    },
+                }
+            if not kwargs.get("refresh_token"):
+                return _err(401, "Invalid or expired refresh token")
+            return _ok({
+                "access_token": "new-access",
+                "refresh_token": "new-refresh",
+                "user_id": "user-1",
+                "username": "admin",
+            })
+        if module == "auth" and method == "logout":
+            return _ok(True)
         if module == "auth" and method == "get_me":
             if not token:
                 return _err(401, "Unauthorized")

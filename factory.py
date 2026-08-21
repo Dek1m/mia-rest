@@ -6,9 +6,10 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 from .config import RestConfig
+from .cookie_auth import access_cookie
 from .dispatcher import RpcDispatcher
 from .envelope import EnvelopeFactory
 from .middleware import RestMiddleware
@@ -28,7 +29,13 @@ _TYPE_MAP = {
 def create_app(config: RestConfig, proxy: Any | None, log: Any | None) -> FastAPI:
     """HTTP-приложение. docs_url/redoc/openapi автоген отключены."""
     envelope = EnvelopeFactory()
-    dispatcher = RpcDispatcher(proxy=proxy, envelope=envelope, log=log)
+    dispatcher = RpcDispatcher(
+        proxy=proxy,
+        envelope=envelope,
+        log=log,
+        spa_origins=config.spa_origins,
+        cors_origins=config.cors_origins,
+    )
     app = FastAPI(title="Mia REST", docs_url=None, redoc_url=None, openapi_url=None)
     app.state.config = config
     app.state.proxy = proxy
@@ -53,6 +60,7 @@ def _mount_middleware(
         envelope=envelope,
         log=log,
     )
+    # Cookie-сессия + непустой CORS запрещены (ADR-001). Дефолт — пустой список.
     if config.cors_origins:
         app.add_middleware(
             CORSMiddleware,
@@ -86,6 +94,11 @@ def _mount_routes(
         methods = proxy.list_api() if proxy is not None else []
         return JSONResponse(build_openapi(methods))
 
+    @app.get("/api/v1/auth/avatar")
+    async def avatar(request: Request) -> Response:
+        # GET байтов для <img>. Без SPA-header ок. CSRF не применяется.
+        return await _serve_avatar(request, proxy, dispatcher)
+
     @app.post("/api/v1/{module}/{function}")
     async def rpc(module: str, function: str, request: Request) -> JSONResponse:
         return await dispatcher.dispatch(request, module, function)
@@ -95,6 +108,36 @@ def _mount_handlers(app: FastAPI, dispatcher: RpcDispatcher) -> None:
     @app.exception_handler(RequestValidationError)
     async def on_validation(request: Request, exc: RequestValidationError) -> JSONResponse:
         return dispatcher.client_error(request, 400, "Invalid request")
+
+
+async def _serve_avatar(
+    request: Request,
+    proxy: Any | None,
+    dispatcher: RpcDispatcher,
+) -> Response:
+    if proxy is None:
+        return dispatcher.client_error(request, 503, "API proxy unavailable")
+    auth = getattr(proxy, "auth_provider", None)
+    if auth is None:
+        return dispatcher.client_error(request, 401, "Authentication required")
+    token = access_cookie(request)
+    if not token:
+        return dispatcher.client_error(request, 401, "Authentication required")
+    ctx = await auth.validate_token(token)
+    if ctx is None:
+        return dispatcher.client_error(request, 401, "Invalid or expired token")
+    payload = await auth.get_avatar_bytes(ctx.user_id)
+    if payload is None:
+        return dispatcher.client_error(request, 404, "Avatar not found")
+    raw, content_type = payload
+    return Response(
+        content=raw,
+        media_type=content_type,
+        headers={
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 def build_openapi(methods: list[dict[str, Any]]) -> dict[str, Any]:

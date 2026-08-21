@@ -19,6 +19,7 @@ def test_from_env_defaults(monkeypatch) -> None:
     assert cfg.port == 8080
     assert cfg.bind is True
     assert cfg.cors_origins == []
+    assert cfg.spa_origins == ["http://localhost:5173"]
     assert cfg.max_body_bytes == 1_048_576
     assert cfg.docs is False
 

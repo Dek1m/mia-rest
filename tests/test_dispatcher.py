@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import inspect
 import json
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
@@ -301,6 +302,136 @@ class TestLogs:
         keys = started[-1][2]["args_keys"]
         assert "password" in keys
         assert "username" in keys
+
+
+class TestSpaCookies:
+    def test_spa_login_sets_host_cookies_strips_tokens(self, client) -> None:
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"username": "admin", "password": "secret"},
+            headers={"X-Albedo-Client": "spa", "Origin": "http://localhost:5173"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["error"] is None
+        assert "access_token" not in body["data"]
+        assert "refresh_token" not in body["data"]
+        assert body["data"]["user_id"] == "user-1"
+        cookies = response.headers.get_list("set-cookie")
+        blob = "\n".join(cookies)
+        assert "__Host-albedo_at=" in blob
+        assert "__Host-albedo_rt=" in blob
+        assert "Domain=" not in blob
+        assert "samesite=lax" in blob.lower()
+        assert "samesite=strict" in blob.lower()
+
+    def test_cookie_without_spa_header_is_csrf(self, client) -> None:
+        response = client.post(
+            "/api/v1/auth/get_me",
+            json={},
+            headers={"Cookie": "__Host-albedo_at=tok"},
+        )
+        assert response.status_code == 403
+        assert response.json()["error"]["code"] == "CSRF_HEADER"
+
+    def test_spa_origin_mismatch(self, client) -> None:
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"username": "a", "password": "b"},
+            headers={"X-Albedo-Client": "spa", "Origin": "http://evil.example"},
+        )
+        assert response.status_code == 403
+        assert response.json()["error"]["code"] == "ORIGIN_MISMATCH"
+
+    def test_spa_refresh_injects_cookie_ignores_body(self, client, fake_proxy) -> None:
+        response = client.post(
+            "/api/v1/auth/refresh_token",
+            json={"refresh_token": "from-body"},
+            headers={
+                "X-Albedo-Client": "spa",
+                "Origin": "http://localhost:5173",
+                "Cookie": "__Host-albedo_rt=from-cookie",
+            },
+        )
+        assert response.status_code == 200
+        assert fake_proxy.calls[-1][2]["refresh_token"] == "from-cookie"
+        assert fake_proxy.calls[-1][3] is None
+        assert "access_token" not in response.json()["data"]
+
+    def test_spa_refresh_reuse_clears_cookies(self, client) -> None:
+        response = client.post(
+            "/api/v1/auth/refresh_token",
+            json={},
+            headers={
+                "X-Albedo-Client": "spa",
+                "Origin": "http://localhost:5173",
+                "Cookie": "__Host-albedo_rt=reuse",
+            },
+        )
+        assert response.status_code == 401
+        assert response.json()["error"]["code"] == "REUSE_DETECTED"
+        blob = "\n".join(response.headers.get_list("set-cookie"))
+        assert "__Host-albedo_at=" in blob
+        assert "__Host-albedo_rt=" in blob
+        assert "Max-Age=0" in blob
+
+    def test_spa_logout_always_clears(self, client) -> None:
+        response = client.post(
+            "/api/v1/auth/logout",
+            json={},
+            headers={"X-Albedo-Client": "spa", "Origin": "http://localhost:5173"},
+        )
+        assert response.status_code == 200
+        blob = "\n".join(response.headers.get_list("set-cookie"))
+        assert "Max-Age=0" in blob
+        assert "__Host-albedo_at=" in blob
+        assert "__Host-albedo_rt=" in blob
+
+    def test_machine_login_keeps_tokens(self, client) -> None:
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"username": "admin", "password": "secret"},
+        )
+        assert response.status_code == 200
+        assert response.json()["data"]["access_token"] == "fake-token"
+        assert not response.headers.get_list("set-cookie")
+
+
+class TestAvatarGet:
+    def test_avatar_without_cookie_401(self, client) -> None:
+        response = client.get("/api/v1/auth/avatar")
+        assert response.status_code == 401
+
+    def test_avatar_bytes_nosniff_nostore(self, rest_config, fake_log) -> None:
+        class _Auth:
+            async def validate_token(self, token: str):
+                assert token == "tok"
+                return SimpleNamespace(user_id="u1")
+
+            async def get_avatar_bytes(self, user_id: str):
+                assert user_id == "u1"
+                return b"\x89PNG", "image/png"
+
+        class _Proxy:
+            auth_provider = _Auth()
+
+            async def call(self, *args, **kwargs):
+                return {"data": None, "error": {"code": "ERROR_404", "message": "x", "status_code": 404}}
+
+            def list_api(self, module_name=None):
+                return []
+
+        app = create_app(rest_config, _Proxy(), fake_log)
+        with TestClient(app) as client:
+            response = client.get(
+                "/api/v1/auth/avatar",
+                headers={"Cookie": "__Host-albedo_at=tok"},
+            )
+        assert response.status_code == 200
+        assert response.content == b"\x89PNG"
+        assert response.headers["cache-control"] == "private, no-store"
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert "image/png" in response.headers["content-type"]
 
 
 class TestRestModuleContract:

@@ -68,7 +68,7 @@ async def _read_body(receive: Receive) -> bytes:
 
 
 class RestMiddleware:
-    """request_id (echo), duration_ms, 413, access-логи без values/Authorization."""
+    """request_id (echo), duration_ms, 413, access-логи без values/Authorization/Cookie."""
 
     def __init__(
         self,
