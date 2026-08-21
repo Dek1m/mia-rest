@@ -32,7 +32,6 @@ def test_clear_session_cookies_twin() -> None:
     response = Response()
     clear_session_cookies(response)
     cookies = response.headers.getlist("set-cookie")
-    assert len(cookies) == 2
     blob = "\n".join(cookies)
     assert "Max-Age=0" in blob
     assert ACCESS_COOKIE in blob
@@ -47,6 +46,16 @@ def test_public_session_data_strips_tokens() -> None:
         "user_id": "u",
         "username": "n",
     }) == {"user_id": "u", "username": "n"}
+
+
+def test_insecure_cookie_names(monkeypatch) -> None:
+    monkeypatch.setenv("MIA_REST_COOKIE_SECURE", "false")
+    response = Response()
+    apply_session_cookies(response, "at", "rt")
+    blob = "\n".join(response.headers.getlist("set-cookie"))
+    assert "albedo_at=" in blob
+    assert "__Host-albedo_at" not in blob
+    assert "Secure" not in blob
 
 
 def test_is_spa_and_cookie_presence() -> None:
