@@ -99,7 +99,14 @@ class RpcDispatcher:
         token, kwargs = self._credentials(request, module, function, kwargs, spa)
         if self._proxy is None:
             return self.client_error(request, 503, "API proxy unavailable")
-        result = await self._proxy.call(module, function, kwargs, token)
+        try:
+            result = await self._proxy.call(module, function, kwargs, token)
+        except Exception as exc:
+            message = str(exc)
+            timed = "timed out" in message.lower() or "timeout" in message.lower()
+            status = 504 if timed else 500
+            code = "TIMEOUT" if timed else getattr(exc, "code", "TASK_FAILED")
+            return self.client_error(request, status, message, code=str(code))
         return self._from_proxy(request, module, function, result, spa)
 
     def client_error(
