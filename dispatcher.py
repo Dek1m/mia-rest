@@ -42,7 +42,9 @@ _SESSION_METHODS = frozenset({
 def _attach_session(
     kwargs: dict[str, Any], module: str, function: str, token: str | None,
 ) -> None:
-    if module != "auth" or function not in _SESSION_METHODS:
+    if module == "workspace":
+        pass
+    elif module != "auth" or function not in _SESSION_METHODS:
         return
     session_id = _sub_from_access(token)
     if session_id:
