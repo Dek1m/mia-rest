@@ -99,6 +99,10 @@ def _mount_routes(
         # GET байтов для <img>. Без SPA-header ок. CSRF не применяется.
         return await _serve_avatar(request, proxy, dispatcher)
 
+    @app.get("/api/v1/llm/agent_avatar")
+    async def agent_avatar(request: Request) -> Response:
+        return await _serve_agent_avatar(request, proxy, dispatcher)
+
     @app.post("/api/v1/{module}/{function}")
     async def rpc(module: str, function: str, request: Request) -> JSONResponse:
         return await dispatcher.dispatch(request, module, function)
@@ -127,7 +131,42 @@ async def _serve_avatar(
     user_id = _ctx_user_id(ctx)
     if not user_id:
         return dispatcher.client_error(request, 401, "Invalid or expired token")
-    payload = await auth.get_avatar_bytes(user_id)
+    requested = request.query_params.get("user_id") or user_id
+    payload = await auth.get_avatar_bytes(requested)
+    if payload is None:
+        return dispatcher.client_error(request, 404, "Avatar not found")
+    raw, content_type = payload
+    return Response(
+        content=raw,
+        media_type=content_type,
+        headers={
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+async def _serve_agent_avatar(
+    request: Request,
+    proxy: Any | None,
+    dispatcher: RpcDispatcher,
+) -> Response:
+    if proxy is None:
+        return dispatcher.client_error(request, 503, "API proxy unavailable")
+    auth = getattr(proxy, "auth_provider", None)
+    llm = getattr(proxy, "llm_provider", None)
+    if auth is None or llm is None:
+        return dispatcher.client_error(request, 503, "API proxy unavailable")
+    token = access_cookie(request)
+    if not token:
+        return dispatcher.client_error(request, 401, "Authentication required")
+    ctx = await auth.validate_token(token)
+    if not _ctx_user_id(ctx):
+        return dispatcher.client_error(request, 401, "Invalid or expired token")
+    agent_id = request.query_params.get("agent_id")
+    if not agent_id:
+        return dispatcher.client_error(request, 400, "Invalid request")
+    payload = await llm.get_agent_avatar_bytes(agent_id)
     if payload is None:
         return dispatcher.client_error(request, 404, "Avatar not found")
     raw, content_type = payload
