@@ -225,4 +225,7 @@ class RestMiddleware:
             extra["status"] = status
         if duration_ms is not None:
             extra["duration_ms"] = duration_ms
-        self._log.info(event, extra=extra)
+        if event == "request_completed" and duration_ms is not None and duration_ms > 500:
+            self._log.warning(event, extra=extra)
+        else:
+            self._log.info(event, extra=extra)

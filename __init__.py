@@ -71,7 +71,10 @@ class RestModule(ModuleBase):
         self._app = create_app(self._config, proxy, self._log)
         if self._config.bind:
             self._bind()
-        self._log.info("rest_module_loaded", version=self.version, bind=self._config.bind)
+        self._log.info(
+            "rest_module_loaded",
+            extra={"version": self.version, "bind": self._config.bind},
+        )
 
     def on_unload(self) -> None:
         if self._server is not None:

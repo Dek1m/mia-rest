@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
   "files": {
-    "__init__.py": "9c1699ffaa2f35d6c92f7ede2a5ce9d1534bf4a87c84add0fb95c933e00765a5",
+    "__init__.py": "145da5b20193206763b37f76e8dc65f018d5ab38ffb2482241b9d8790c956bc6",
     "config.py": "a49684ee88e08d89c0bff67972042cb5d87421e5e2974b0479462c694e00367a",
     "dispatcher.py": "13d65625a0f9256f4d1d9f2634b456888e4deb137fd5f733b3004c6ccbe63c8e",
     "envelope.py": "379ce4b39b66c5fd0aeb0648f6e28345f23ca83cd28494464cc191d14c49cb18",
     "factory.py": "0b7ac00338b0a397d456ccbedb1a4e809b782097627db070fc1d19b3a7812b1d",
     "metrics.py": "363d8a0e512000c141cdcb99d0b80a259e65bf98a88ba04f3a8fe6fb0b0c62e5",
-    "middleware.py": "7bd89f677ae802c0dac1e4292b4e6727fa3e284610893f872d02d584c01ffa92",
+    "middleware.py": "e85449c41d91f2f93609c499a8904f3eb9238af2adc3666b1b5633a2c5355e4a",
     "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "tests/conftest.py": "01a6fc2806d527252129fcd7103a6fa0c4d0896069d06e2a55a16193aeaa9acf",
     "tests/test_config.py": "081b2a92999c043ebcb1315aab2da5dcdaf62afbf9b0eefcb9fb0c893e690e87",
@@ -15,5 +15,5 @@
     "tests/test_envelope.py": "db4f82279cef4bdd12ba048ec364f0e19ea3bf981a1772817e97952dcdb09321",
     "tests/test_health.py": "0d11149e0b9ed4fe43598a500d05ae167a15db38aee26f611268993ae19e5c92"
   },
-  "manifest_hash": "84c18c9eb4b877769d9b28c271fa65d1afe089d09d39f29caa2650f2e8c960a5"
+  "manifest_hash": "7c42f2366b36d3f84a070e3b1a40813a8fa03ab57fb2dc6708717174801fb557"
 }
