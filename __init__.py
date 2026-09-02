@@ -57,7 +57,13 @@ class RestModule(ModuleBase):
 
     @property
     def meta(self) -> ModuleMeta:
-        return ModuleMeta(dependencies=["log", "apiproxy"])
+        return ModuleMeta(
+            dependencies=["log", "apiproxy"],
+            load_on="api",
+            is_system=True,
+            display_name="REST",
+            is_example=False,
+        )
 
     def __init__(self, config: RestConfig | None = None) -> None:
         self._config = config or RestConfig.from_env()

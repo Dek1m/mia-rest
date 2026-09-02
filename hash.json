@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "files": {
-    "__init__.py": "145da5b20193206763b37f76e8dc65f018d5ab38ffb2482241b9d8790c956bc6",
+    "__init__.py": "7dd35aee38b0e7c54bb3af8f17b25e20dc657d599de6fc61ae079af1b0e35e6a",
     "config.py": "7d699ab790368b5ae260a4c235fe30f888f38cfb9779aa8aaf956c53d85988c9",
     "cookie_auth.py": "d73af3bc4e76cafc561c113ebbc08e33b1dacca491e8c4db49728002c97a1d14",
     "dispatcher.py": "c7bea66c55422aae8d97aa347d672880b20c896d85038c4139812827eee3c7eb",
@@ -17,5 +17,5 @@
     "tests/test_envelope.py": "db4f82279cef4bdd12ba048ec364f0e19ea3bf981a1772817e97952dcdb09321",
     "tests/test_health.py": "0d11149e0b9ed4fe43598a500d05ae167a15db38aee26f611268993ae19e5c92"
   },
-  "manifest_hash": "726510498bcd7795adb47d5d6c4c952eab6b0ddb113629971dfb42b1e368a304"
+  "manifest_hash": "8021bcc0f8fd7b20ad27f1d3a3d543651fe77c481c72bcf701dcdf317e944be9"
 }
