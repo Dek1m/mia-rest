@@ -42,7 +42,7 @@ _SESSION_METHODS = frozenset({
 def _attach_session(
     kwargs: dict[str, Any], module: str, function: str, token: str | None,
 ) -> None:
-    if module in ("workspace", "admin"):
+    if module in ("workspace", "system"):
         pass
     elif module != "auth" or function not in _SESSION_METHODS:
         return

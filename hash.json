@@ -2,18 +2,20 @@
   "version": "1.0.0",
   "files": {
     "__init__.py": "145da5b20193206763b37f76e8dc65f018d5ab38ffb2482241b9d8790c956bc6",
-    "config.py": "a49684ee88e08d89c0bff67972042cb5d87421e5e2974b0479462c694e00367a",
-    "dispatcher.py": "13d65625a0f9256f4d1d9f2634b456888e4deb137fd5f733b3004c6ccbe63c8e",
+    "config.py": "7d699ab790368b5ae260a4c235fe30f888f38cfb9779aa8aaf956c53d85988c9",
+    "cookie_auth.py": "d73af3bc4e76cafc561c113ebbc08e33b1dacca491e8c4db49728002c97a1d14",
+    "dispatcher.py": "c7bea66c55422aae8d97aa347d672880b20c896d85038c4139812827eee3c7eb",
     "envelope.py": "379ce4b39b66c5fd0aeb0648f6e28345f23ca83cd28494464cc191d14c49cb18",
-    "factory.py": "0b7ac00338b0a397d456ccbedb1a4e809b782097627db070fc1d19b3a7812b1d",
+    "factory.py": "323273912aa515f203f8c5a58e69847408a35d3d3ce6f74de948f13886e6e221",
     "metrics.py": "363d8a0e512000c141cdcb99d0b80a259e65bf98a88ba04f3a8fe6fb0b0c62e5",
     "middleware.py": "e85449c41d91f2f93609c499a8904f3eb9238af2adc3666b1b5633a2c5355e4a",
     "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "tests/conftest.py": "01a6fc2806d527252129fcd7103a6fa0c4d0896069d06e2a55a16193aeaa9acf",
-    "tests/test_config.py": "081b2a92999c043ebcb1315aab2da5dcdaf62afbf9b0eefcb9fb0c893e690e87",
-    "tests/test_dispatcher.py": "2089d3d3bc393f4024b9e4ca8bffc2bab8560a5bc554080297b26dfa47f2fdf1",
+    "tests/conftest.py": "5e4c763b9b4037d362dfd286b1a1505b2001300bf57f13ae35ecc1c82d87ec5b",
+    "tests/test_config.py": "09fd1132b1e2897aa8a15d3db711344cb8785740a4682c9da52e70c1188204d2",
+    "tests/test_cookie_auth.py": "44450f261380e9db931a1035571ec57dbb5b83b4d8cab30ca6bb6e066c762d61",
+    "tests/test_dispatcher.py": "8c990dccad813b9c78aa5b27793fe9906f58813e10b5f2d63ab60f7bc0e7922a",
     "tests/test_envelope.py": "db4f82279cef4bdd12ba048ec364f0e19ea3bf981a1772817e97952dcdb09321",
     "tests/test_health.py": "0d11149e0b9ed4fe43598a500d05ae167a15db38aee26f611268993ae19e5c92"
   },
-  "manifest_hash": "7c42f2366b36d3f84a070e3b1a40813a8fa03ab57fb2dc6708717174801fb557"
+  "manifest_hash": "726510498bcd7795adb47d5d6c4c952eab6b0ddb113629971dfb42b1e368a304"
 }
