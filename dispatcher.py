@@ -182,10 +182,17 @@ class RpcDispatcher:
         token: str | None,
         spa: bool,
     ) -> JSONResponse:
-        """run_usage без celery: live-трасса из Redis, статус — всегда running."""
+        """run_usage без celery: live-трасса из Redis. reset=True — сброс старой трассы."""
         session_id = str(kwargs.get("session_id") or "")
         trace: dict[str, Any] | None = None
-        if session_id:
+        if session_id and kwargs.get("reset"):
+            try:
+                from modules.llm.trace_bus import clear_trace
+
+                clear_trace(session_id)
+            except Exception:
+                pass
+        elif session_id:
             try:
                 from modules.llm.trace_bus import get_trace
 
