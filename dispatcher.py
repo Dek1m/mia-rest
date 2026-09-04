@@ -199,11 +199,19 @@ class RpcDispatcher:
                 trace = get_trace(session_id)
             except Exception:
                 trace = None
+        chat = {"in": 0, "out": 0}
+        if session_id:
+            try:
+                from modules.llm.trace_bus import get_chat_tokens
+
+                chat = get_chat_tokens(session_id)
+            except Exception:
+                chat = {"in": 0, "out": 0}
         data: dict[str, Any] = {
             "id": None,
             "status": "running" if trace else "idle",
-            "tokens_in": 0,
-            "tokens_out": 0,
+            "tokens_in": int(chat.get("in") or 0),
+            "tokens_out": int(chat.get("out") or 0),
             "cache_tokens": 0,
             "cache_hits": 0,
             "error": None,
