@@ -101,7 +101,7 @@ class RpcDispatcher:
             return self.client_error(request, 503, "API proxy unavailable")
         if module == "llm" and function == "run_usage":
             # Горячий путь поллинга стрима: отвечаем из Redis напрямую, без celery.
-            if not token and not spa:
+            if not token and not (spa and has_albedo_cookie(request)):
                 return self.client_error(request, 401, "Authentication required")
             return self._live_usage(request, kwargs, token, spa)
         try:
