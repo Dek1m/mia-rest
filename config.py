@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from typing import ClassVar
+
+from modules_system.pref_spec import PrefField
 
 __all__ = ["RestConfig"]
 
@@ -39,6 +42,39 @@ class RestConfig:
     spa_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173"])
     max_body_bytes: int = 1_048_576
     docs: bool = False
+
+    SETTINGS: ClassVar[tuple[PrefField, ...]] = (
+        PrefField(
+            "host", "Bind host",
+            "Адрес HTTP-слушателя REST.",
+            "string", "127.0.0.1", "Network", env="MIA_REST_HOST",
+            target="compose", needs_restart=True,
+        ),
+        PrefField(
+            "port", "Port",
+            "Порт RPC. Смена требует restart belle.",
+            "int", 8080, "Network", env="MIA_REST_PORT",
+            target="compose", needs_restart=True, minimum=1, maximum=65535,
+        ),
+        PrefField(
+            "bind", "Bind HTTP",
+            "Слушать HTTP. Worker обычно false.",
+            "bool", True, "Network", env="MIA_REST_BIND",
+            target="compose", needs_restart=True,
+        ),
+        PrefField(
+            "max_body_bytes", "Max body (bytes)",
+            "Потолок тела RPC-запроса.",
+            "int", 1_048_576, "Limits", env="MIA_REST_MAX_BODY_BYTES",
+            minimum=1024, maximum=67_108_864,
+        ),
+        PrefField(
+            "docs", "OpenAPI docs",
+            "Отдать /docs. В проде выкл.",
+            "bool", False, "Network", env="MIA_REST_DOCS",
+            target="env", needs_restart=True,
+        ),
+    )
 
     @classmethod
     def from_env(cls) -> RestConfig:
