@@ -41,6 +41,7 @@ _load_submodule("metrics")
 _load_submodule("cookie_auth")
 _load_submodule("middleware")
 _load_submodule("dispatcher")
+_load_submodule("term_ws")
 _load_submodule("factory")
 
 _init_spec = importlib.util.spec_from_file_location(

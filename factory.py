@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket
 from fastapi.exceptions import RequestValidationError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse, Response
@@ -13,6 +13,7 @@ from .cookie_auth import access_cookie
 from .dispatcher import RpcDispatcher
 from .envelope import EnvelopeFactory
 from .middleware import RestMiddleware
+from .term_ws import term_pty as handle_term_pty
 
 __all__ = ["create_app", "build_openapi"]
 
@@ -106,6 +107,10 @@ def _mount_routes(
     @app.post("/api/v1/{module}/{function}")
     async def rpc(module: str, function: str, request: Request) -> JSONResponse:
         return await dispatcher.dispatch(request, module, function)
+
+    @app.websocket("/api/v1/term/pty")
+    async def term_pty(websocket: WebSocket) -> None:
+        await handle_term_pty(websocket, proxy)
 
 
 def _mount_handlers(app: FastAPI, dispatcher: RpcDispatcher) -> None:

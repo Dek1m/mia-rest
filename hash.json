@@ -6,16 +6,18 @@
     "cookie_auth.py": "d73af3bc4e76cafc561c113ebbc08e33b1dacca491e8c4db49728002c97a1d14",
     "dispatcher.py": "c7bea66c55422aae8d97aa347d672880b20c896d85038c4139812827eee3c7eb",
     "envelope.py": "379ce4b39b66c5fd0aeb0648f6e28345f23ca83cd28494464cc191d14c49cb18",
-    "factory.py": "323273912aa515f203f8c5a58e69847408a35d3d3ce6f74de948f13886e6e221",
+    "factory.py": "451a149886e55ae196ad113ebd646f75278d3a445e1513515e9751ce696f6a05",
     "metrics.py": "363d8a0e512000c141cdcb99d0b80a259e65bf98a88ba04f3a8fe6fb0b0c62e5",
     "middleware.py": "e85449c41d91f2f93609c499a8904f3eb9238af2adc3666b1b5633a2c5355e4a",
+    "term_ws.py": "5ac874a1e4b0353d44655ac2cf5d03faf8c56ae3b537e1dbdfae2c4ed551160b",
     "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "tests/conftest.py": "5e4c763b9b4037d362dfd286b1a1505b2001300bf57f13ae35ecc1c82d87ec5b",
+    "tests/conftest.py": "f33d8f3acb24b0c5e30f6a1755db38428bdea7ccdcbd08840a3d7a1bb50dd985",
     "tests/test_config.py": "09fd1132b1e2897aa8a15d3db711344cb8785740a4682c9da52e70c1188204d2",
     "tests/test_cookie_auth.py": "44450f261380e9db931a1035571ec57dbb5b83b4d8cab30ca6bb6e066c762d61",
     "tests/test_dispatcher.py": "8c990dccad813b9c78aa5b27793fe9906f58813e10b5f2d63ab60f7bc0e7922a",
     "tests/test_envelope.py": "db4f82279cef4bdd12ba048ec364f0e19ea3bf981a1772817e97952dcdb09321",
-    "tests/test_health.py": "0d11149e0b9ed4fe43598a500d05ae167a15db38aee26f611268993ae19e5c92"
+    "tests/test_health.py": "0d11149e0b9ed4fe43598a500d05ae167a15db38aee26f611268993ae19e5c92",
+    "tests/test_term_ws.py": "6dd3a0415642ede6aca2ad62976e90420e4b4ad2e7b697a483ee54ec2d3fff82"
   },
-  "manifest_hash": "57d8574d9f714248dbc5ad5fe5667a840e27b84056538ce572441775de1e7593"
+  "manifest_hash": "90a225547c93a67e604d0ef875fc51dd1f223d0cc8f68df7bf850308ecc17146"
 }
