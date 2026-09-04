@@ -99,6 +99,9 @@ class RpcDispatcher:
         token, kwargs = self._credentials(request, module, function, kwargs, spa)
         if self._proxy is None:
             return self.client_error(request, 503, "API proxy unavailable")
+        if module == "llm" and function == "run_usage":
+            # Горячий путь поллинга стрима: отвечаем из Redis напрямую, без celery.
+            return self._live_usage(request, kwargs, token, spa)
         try:
             result = await self._proxy.call(module, function, kwargs, token)
         except Exception as exc:
@@ -169,6 +172,41 @@ class RpcDispatcher:
         if scheme.lower() != "bearer" or not remainder.strip():
             return None
         return remainder.strip()
+
+    def _live_usage(
+        self,
+        request: Request,
+        kwargs: dict[str, Any],
+        token: str | None,
+        spa: bool,
+    ) -> JSONResponse:
+        """run_usage без celery: live-трасса из Redis, статус — всегда running."""
+        session_id = str(kwargs.get("session_id") or "")
+        trace: dict[str, Any] | None = None
+        if session_id:
+            try:
+                from modules.llm.trace_bus import get_trace
+
+                trace = get_trace(session_id)
+            except Exception:
+                trace = None
+        data: dict[str, Any] = {
+            "id": None,
+            "status": "running" if trace else "idle",
+            "tokens_in": 0,
+            "tokens_out": 0,
+            "cache_tokens": 0,
+            "cache_hits": 0,
+            "error": None,
+            "trace": trace or {},
+        }
+        return self._from_proxy(
+            request,
+            "llm",
+            "run_usage",
+            {"data": data, "error": None},
+            spa,
+        )
 
     async def _read_kwargs(self, request: Request) -> tuple[dict[str, Any] | None, JSONResponse | None]:
         raw = await request.body()
