@@ -9,6 +9,8 @@ from typing import Any
 from starlette.responses import JSONResponse
 from starlette.types import Message, Receive, Scope, Send
 
+from core.dispatch.context import request_id_var
+
 from .envelope import EnvelopeFactory
 from .metrics import rest_http_request_duration_seconds, rest_http_requests_total
 
@@ -91,6 +93,8 @@ class RestMiddleware:
 
     async def _handle_http(self, scope: Scope, receive: Receive, send: Send) -> None:
         request_id = _header(scope, b"x-request-id") or str(uuid.uuid4())
+        # Correlation id для QueueDispatcher → envelope TaskRequest → логи воркера
+        request_id_var.set(request_id)
         started = time.perf_counter()
         path = str(scope.get("path", ""))
         method = str(scope.get("method", ""))
