@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import inspect
 import json
+import sys
+import types
 from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
 
 from rest import RestModule
@@ -460,6 +463,138 @@ class TestAvatarGet:
         assert response.headers["cache-control"] == "private, no-store"
         assert response.headers["x-content-type-options"] == "nosniff"
         assert "image/png" in response.headers["content-type"]
+
+
+class _AuthProxy:
+    """Прокси с mock-ом auth_provider.validate_token для run_usage."""
+
+    def __init__(self, ctx: object) -> None:
+        outer = self
+
+        class _Auth:
+            async def validate_token(self, token: str):
+                outer.last_token = token
+                if callable(ctx):
+                    return ctx(token)
+                return ctx
+
+        self.auth_provider = _Auth()
+        self.last_token: str | None = None
+
+    async def call(self, *args, **kwargs):
+        return {
+            "data": None,
+            "error": {"code": "ERROR_404", "message": "x", "status_code": 404},
+        }
+
+    def list_api(self, module_name=None):
+        return []
+
+
+@pytest.fixture
+def fake_trace_bus(monkeypatch):
+    """Фейковый modules.llm.trace_bus: пишет (fn, user_id, session_id) в calls."""
+    calls: list[tuple[str, str, str]] = []
+    mod = types.ModuleType("modules.llm.trace_bus")
+    mod.get_trace = lambda user_id, session_id, client=None: (  # type: ignore[attr-defined]
+        calls.append(("get_trace", user_id, session_id)), None,
+    )[1]
+    mod.clear_trace = lambda user_id, session_id, client=None: (  # type: ignore[attr-defined]
+        calls.append(("clear_trace", user_id, session_id)), None,
+    )[1]
+    mod.get_chat_tokens = lambda user_id, session_id, client=None: (  # type: ignore[attr-defined]
+        calls.append(("get_chat_tokens", user_id, session_id)), {"in": 0, "out": 0},
+    )[1]
+    pkg = sys.modules.get("modules.llm") or types.ModuleType("modules.llm")
+    monkeypatch.setitem(sys.modules, "modules.llm", pkg)
+    monkeypatch.setitem(sys.modules, "modules.llm.trace_bus", mod)
+    return calls
+
+
+class TestRunUsageAuth:
+    def test_run_usage_without_token_401(self, client) -> None:
+        response = client.post("/api/v1/llm/run_usage", json={"session_id": "s1"})
+        assert response.status_code == 401
+        assert response.headers["www-authenticate"] == "Bearer"
+
+    def test_run_usage_garbage_bearer_401(self, rest_config, fake_log, fake_trace_bus) -> None:
+        app = create_app(rest_config, _AuthProxy(None), fake_log)
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/llm/run_usage",
+                json={"session_id": "s1", "reset": True},
+                headers={"Authorization": "Bearer garbage-token"},
+            )
+        assert response.status_code == 401
+        # reset без валидации не executes: чужую трассу сбросить нельзя
+        assert fake_trace_bus == []
+
+    def test_run_usage_valid_token_foreign_session_idle(
+        self, rest_config, fake_log, fake_trace_bus,
+    ) -> None:
+        proxy = _AuthProxy({"user_id": "u1", "username": "ada"})
+        app = create_app(rest_config, proxy, fake_log)
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/llm/run_usage",
+                # _session_user_id в теле игнорируется — user_id только из токена
+                json={"session_id": "s-foreign", "_session_user_id": "attacker"},
+                headers={"Authorization": "Bearer good-token"},
+            )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["status"] == "idle"
+        assert data["trace"] == {}
+        assert proxy.last_token == "good-token"
+        assert ("get_trace", "u1", "s-foreign") in fake_trace_bus
+        assert ("get_chat_tokens", "u1", "s-foreign") in fake_trace_bus
+        assert all(user == "u1" for _, user, _ in fake_trace_bus)
+
+    def test_run_usage_reset_with_valid_token(
+        self, rest_config, fake_log, fake_trace_bus,
+    ) -> None:
+        app = create_app(rest_config, _AuthProxy(lambda token: {"user_id": "u1"}), fake_log)
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/llm/run_usage",
+                json={"session_id": "s1", "reset": True},
+                headers={"Authorization": "Bearer good-token"},
+            )
+        assert response.status_code == 200
+        assert ("clear_trace", "u1", "s1") in fake_trace_bus
+
+    def test_run_usage_spa_cookie_token_validated(
+        self, rest_config, fake_log, fake_trace_bus,
+    ) -> None:
+        app = create_app(rest_config, _AuthProxy(None), fake_log)
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/llm/run_usage",
+                json={"session_id": "s1"},
+                headers={
+                    "X-Albedo-Client": "spa",
+                    "Origin": "http://localhost:5173",
+                    "Cookie": "__Host-albedo_at=cookie-token",
+                },
+            )
+        assert response.status_code == 401
+
+    def test_run_usage_no_auth_provider_401(self, rest_config, fake_log, fake_trace_bus) -> None:
+        class _Proxy:
+            async def call(self, *args, **kwargs):
+                return {"data": None, "error": None}
+
+            def list_api(self, module_name=None):
+                return []
+
+        app = create_app(rest_config, _Proxy(), fake_log)
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/llm/run_usage",
+                json={"session_id": "s1"},
+                headers={"Authorization": "Bearer tok"},
+            )
+        assert response.status_code == 401
 
 
 class TestRestModuleContract:

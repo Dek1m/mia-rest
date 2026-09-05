@@ -64,6 +64,17 @@ def _sub_from_access(token: str | None) -> str | None:
     return str(sub) if sub else None
 
 
+def _ctx_user_id(ctx: Any) -> str | None:
+    """validate_token через воркер приходит dict/str, не UserContext."""
+    if ctx is None:
+        return None
+    if isinstance(ctx, dict):
+        value = ctx.get("user_id")
+        return str(value) if value else None
+    value = getattr(ctx, "user_id", None)
+    return str(value) if value else None
+
+
 class RpcDispatcher:
     """Один маршрут. JSON-тело = kwargs. JWT не парсим."""
 
@@ -101,9 +112,14 @@ class RpcDispatcher:
             return self.client_error(request, 503, "API proxy unavailable")
         if module == "llm" and function == "run_usage":
             # Горячий путь поллинга стрима: отвечаем из Redis напрямую, без celery.
-            if not token and not (spa and has_albedo_cookie(request)):
+            # Токен обязателен и валидируется: ключи трассы содержат user_id —
+            # чужой стрим нельзя ни прочитать, ни сбросить (IDOR).
+            if not token:
                 return self.client_error(request, 401, "Authentication required")
-            return self._live_usage(request, kwargs, token, spa)
+            user_id = await self._validated_user_id(token)
+            if not user_id:
+                return self.client_error(request, 401, "Invalid or expired token")
+            return self._live_usage(request, kwargs, user_id, spa)
         try:
             result = await self._proxy.call(module, function, kwargs, token)
         except Exception as exc:
@@ -175,28 +191,47 @@ class RpcDispatcher:
             return None
         return remainder.strip()
 
+    async def _validated_user_id(self, token: str) -> str | None:
+        """user_id из ВАЛИДИРОВАННОГО токена.
+
+        validate_token — не API-метод реестра (без api=True), поэтому прямой
+        вызов провайдера как в factory._serve_avatar / term_ws, не proxy.call.
+        """
+        auth = getattr(self._proxy, "auth_provider", None)
+        if auth is None:
+            return None
+        try:
+            ctx = await auth.validate_token(token)
+        except Exception:
+            return None
+        return _ctx_user_id(ctx)
+
     def _live_usage(
         self,
         request: Request,
         kwargs: dict[str, Any],
-        token: str | None,
+        user_id: str,
         spa: bool,
     ) -> JSONResponse:
-        """run_usage без celery: live-трасса из Redis. reset=True — сброс старой трассы."""
+        """run_usage без celery: live-трасса из Redis. reset=True — сброс старой трассы.
+
+        Ключи строятся из user_id валидированного токена; _session_user_id из
+        kwargs игнорируется — иначе клиент читал бы чужой стрим.
+        """
         session_id = str(kwargs.get("session_id") or "")
         trace: dict[str, Any] | None = None
         if session_id and kwargs.get("reset"):
             try:
                 from modules.llm.trace_bus import clear_trace
 
-                clear_trace(session_id)
+                clear_trace(user_id, session_id)
             except Exception:
                 pass
         elif session_id:
             try:
                 from modules.llm.trace_bus import get_trace
 
-                trace = get_trace(session_id)
+                trace = get_trace(user_id, session_id)
             except Exception:
                 trace = None
         chat = {"in": 0, "out": 0}
@@ -204,7 +239,7 @@ class RpcDispatcher:
             try:
                 from modules.llm.trace_bus import get_chat_tokens
 
-                chat = get_chat_tokens(session_id)
+                chat = get_chat_tokens(user_id, session_id)
             except Exception:
                 chat = {"in": 0, "out": 0}
         data: dict[str, Any] = {
