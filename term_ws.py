@@ -68,6 +68,14 @@ async def term_pty(websocket: WebSocket, proxy: Any | None) -> None:
     if not user_id:
         await _close(websocket, 4401)
         return
+    # attach_pty не @task — permission term:access проверяем здесь (fail-closed)
+    try:
+        allowed = await auth.check_permission(user_id, "term:access")
+    except Exception:
+        allowed = False
+    if not allowed:
+        await _close(websocket, 4403)
+        return
     term = getattr(proxy, "term_provider", None) if proxy is not None else None
     if callable(term) and not hasattr(term, "attach_pty"):
         term = term()
